@@ -1,17 +1,72 @@
 import sys
 import math
 import random
+import copy
 from operator import attrgetter
 
 evals = 0
 budget = 0
-sudoku = None
 
 class Solution:
-    def __init__(self, permutation, random=False):
-		self.permutation = permutation
-		self.fitness = sys.float_info.max
+	def __init__(self)
+		self.permutation = []
+		self.fitness = 81
+		self.fitness2 = 10000
 		self.age = 1
+
+    def genRanSol(self, sudoku, num, freq):		
+		sudoku_cl = copy.deepcopy(sudoku)
+		num_cl = copy.deepcopy(num)
+		
+		random.shuffle(num_cl)
+		
+		self.fitness = 0
+		self.fitness2 = 0
+
+		for i in range(len(num_cl)):
+			possible_numbers = set([1,2,3,4,5,6,7,8,9])
+			possible_numbers = possible_numbers - sudoku_cl.col[num_cl[i]//9] - sudoku_cl.row[num_cl[i]%9] - sudoku_cl.box[calcIdxOfBox(num_cl[i])]
+
+			if len(possible_numbers) == 0:
+				self.permutation.append((num_cl[i], 0))
+				self.fitness += 1
+			else:
+				a = random.choice(list(possible_numbers))
+				self.permutation.append((num_cl[i], a))
+				sudoku_cl.col[num_cl[i]//9].add(a)
+				sudoku_cl.row[num_cl[i]%9].add(a)
+				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
+				fitness2 = fitness2 + freq[num_cl[i]][a-1]
+				freq[num_cl[i]][a-1] += 1
+
+	def validate(self, sudoku, perm, freq):
+		sudoku_cl = copy.deepcopy(sudoku)
+		
+		self.fitness = 0
+		self.fitness2 = 0
+
+		for i in range(len(perm)):
+			possible_numbers = set([1,2,3,4,5,6,7,8,9])
+			possible_numbers = possible_numbers - sudoku_cl.col[perm[i][0]//9] - sudoku_cl.row[perm[i][0]%9] - sudoku_cl.box[calcIdxOfBox(perm[i][0])]
+
+			if len(possible_numbers) == 0:
+				self.permutation.append((perm[i][0], 0))
+				self.fitness += 1
+			else:
+				a = 0
+	
+				if perm[i][1] in possible_numbers:
+					a = perm[i][1]
+					self.permutation.append((perm[i][0], a)) 
+				else:
+					a = random.choice(list(possible_numbers))
+					self.permutation.append((perm[i][0], a))
+		
+				sudoku_cl.col[num_cl[i]//9].add(a)
+				sudoku_cl.row[num_cl[i]%9].add(a)
+				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
+				fitness2 = fitness2 + freq[num_cl[i]][a-1]
+				freq[num_cl[i]][a-1] += 1
 
 def calcIdxOfBox(pos):
 	
@@ -58,69 +113,25 @@ def read_data(filename):
 	global sudoku
 	lines = open(filename).readlines()
 	sudoku = Sudoku(9)
+	num_fix = []
+	num = []
 
 	pos = 0
 	for line in lines:
 		for i in range(len(line)):
 			if line[i].isdigit():
-				sudoku.col[pos//9].add(line[i])
+				sudoku.col[pos//9].add(int(line[i]))
+				sudoku.row[pos%9].add(int(line[i]))
+				sudoku.box[calcIdxOfBox(pos)].add(int(line[i]))
+				num_fix.append((pos, int(line[i])))
+				pos += 1
+			elif line[i] == '.':
+				num.append(pos)
+				pos += 1
+			else:
+				pass
 
-		    no, x, y = line.strip().split(" ")
-		    coords.append((float(x), float(y)))
-	num = len(coords)
-	dist = [[0 for col in range(num)] for row in range(num)]
-	for i in range(num - 1):
-		for j in range(1, num):
-		    dist[i][j] = math.sqrt((coords[i][0] - coords[j][0]) ** 2 + (coords[i][1] - coords[j][1]) ** 2)
-	return num, dist
-
-def evaluate(sol):
-	global evals
-	evals += 1
-	sol.fitness = 0
-	for i in range(len(sol.permutation) - 1):
-		sol.fitness += dist[sol.permutation[i]][sol.permutation[i+1]]
-
-class Crossover:
-    def crossover(self, parent_a, parent_b):
-        assert(len(parent_a.permutation) == len(parent_b.permutation))
-        size = len(parent_a.permutation)
-
-        cp1 = random.randrange(size)
-        cp2 = random.randrange(size)
-        while(cp2 == cp1):
-            cp2 = random.randrange(size)
-
-        if cp2 < cp1:
-            cp1, cp2 = cp2, cp1
-
-        map_a = {}
-        map_b = {}
-        
-        child_a = Solution(parent_a.permutation)
-        child_b = Solution(parent_b.permutation)
-        for i in range(cp1, cp2 + 1):
-            item_a = child_a.permutation[i]
-            item_b = child_b.permutation[i]
-            child_a.permutation[i] = item_b
-            child_b.permutation[i] = item_a
-            map_a[item_b] = item_a
-            map_b[item_a] = item_b
-
-        self.check_unmapped_items(child_a, map_a, cp1, cp2)
-        self.check_unmapped_items(child_b, map_b, cp1, cp2)
-
-        return child_a, child_b
-
-    def check_unmapped_items(self, child, mapping, cp1, cp2):
-        assert(cp1 < cp2)
-        for i in range(len(child.permutation)):
-            if i < cp1 or i > cp2:
-                mapped = child.permutation[i]
-                while(mapped in mapping):
-                    mapped = mapping[mapped]
-                child.permutation[i] = mapped
-        return child
+	return num, num_fix, sudoku
 
 class CrossoverOrder:
     def crossover(self, parent_a, parent_b):
@@ -208,7 +219,7 @@ class BinaryTournament:
             return b
 
 def ga(filename):
-	num, dist = read_data(filename)
+	num, num_fix, sudoku = read_data(filename)
 
 	population = []
 	selection_op = BinaryTournament()
@@ -223,7 +234,7 @@ def ga(filename):
 		perm = []
 		for j in range(num):
 			perm.append(j)
-		random.shuffle(perm)             
+		random.shuffle(perm)            
 		new_individual = Solution(perm)
 		evaluate(new_individual)
 		population.append(new_individual)
