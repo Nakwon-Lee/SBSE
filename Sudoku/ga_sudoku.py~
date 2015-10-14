@@ -7,67 +7,6 @@ from operator import attrgetter
 evals = 0
 budget = 0
 
-class Solution:
-	def __init__(self)
-		self.permutation = []
-		self.fitness = 81
-		self.fitness2 = 10000
-		self.age = 1
-
-    def genRanSol(self, sudoku, num, freq):		
-		sudoku_cl = copy.deepcopy(sudoku)
-		num_cl = copy.deepcopy(num)
-		
-		random.shuffle(num_cl)
-		
-		self.fitness = 0
-		self.fitness2 = 0
-
-		for i in range(len(num_cl)):
-			possible_numbers = set([1,2,3,4,5,6,7,8,9])
-			possible_numbers = possible_numbers - sudoku_cl.col[num_cl[i]//9] - sudoku_cl.row[num_cl[i]%9] - sudoku_cl.box[calcIdxOfBox(num_cl[i])]
-
-			if len(possible_numbers) == 0:
-				self.permutation.append((num_cl[i], 0))
-				self.fitness += 1
-			else:
-				a = random.choice(list(possible_numbers))
-				self.permutation.append((num_cl[i], a))
-				sudoku_cl.col[num_cl[i]//9].add(a)
-				sudoku_cl.row[num_cl[i]%9].add(a)
-				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
-				fitness2 = fitness2 + freq[num_cl[i]][a-1]
-				freq[num_cl[i]][a-1] += 1
-
-	def validate(self, sudoku, perm, freq):
-		sudoku_cl = copy.deepcopy(sudoku)
-		
-		self.fitness = 0
-		self.fitness2 = 0
-
-		for i in range(len(perm)):
-			possible_numbers = set([1,2,3,4,5,6,7,8,9])
-			possible_numbers = possible_numbers - sudoku_cl.col[perm[i][0]//9] - sudoku_cl.row[perm[i][0]%9] - sudoku_cl.box[calcIdxOfBox(perm[i][0])]
-
-			if len(possible_numbers) == 0:
-				self.permutation.append((perm[i][0], 0))
-				self.fitness += 1
-			else:
-				a = 0
-	
-				if perm[i][1] in possible_numbers:
-					a = perm[i][1]
-					self.permutation.append((perm[i][0], a)) 
-				else:
-					a = random.choice(list(possible_numbers))
-					self.permutation.append((perm[i][0], a))
-		
-				sudoku_cl.col[num_cl[i]//9].add(a)
-				sudoku_cl.row[num_cl[i]%9].add(a)
-				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
-				fitness2 = fitness2 + freq[num_cl[i]][a-1]
-				freq[num_cl[i]][a-1] += 1
-
 def calcIdxOfBox(pos):
 	
 	quota = pos // 9
@@ -99,12 +38,12 @@ def calcIdxOfBox(pos):
 	return idx
 
 class Sudoku:
-	def __init__(self,num)
+	def __init__(self,num):
 		self.col = []
 		self.row = []
 		self.box = []
 	
-		for i in range(num)
+		for i in range(num):
 			self.col.append(set())
 			self.row.append(set())
 			self.box.append(set())
@@ -153,9 +92,9 @@ class CrossoverOrder:
 
 		for i in range(cp1, cp2 + 1):
 			child_a_perm.append(parent_b.permutation[i])
-			child_a_set.add(parent_b.permutation[i])
+			child_a_set.add(parent_b.permutation[i][0])
 			child_b_perm.append(parent_a.permutation[i])
-			child_b_set.add(parent_a.permutation[i])
+			child_b_set.add(parent_a.permutation[i][0])
 
 		ch_a_idx = 0
 		p_a_idx = 0
@@ -163,80 +102,164 @@ class CrossoverOrder:
 		p_b_idx = 0
 
 		while ch_a_idx < cp1:
-			if parent_a.permutation[p_a_idx] not in child_a_set:
+			if parent_a.permutation[p_a_idx][0] not in child_a_set:
 				child_a_perm.insert(ch_a_idx, parent_a.permutation[p_a_idx])
 				ch_a_idx += 1
 			p_a_idx += 1
 		ch_a_idx = cp2 + 1
 
 		while ch_b_idx < cp1:
-			if parent_b.permutation[p_b_idx] not in child_b_set:
+			if parent_b.permutation[p_b_idx][0] not in child_b_set:
 				child_b_perm.insert(ch_b_idx, parent_b.permutation[p_b_idx])
 				ch_b_idx += 1
 			p_b_idx += 1
 		ch_b_idx = cp2 + 1
 
 		while ch_a_idx < size:
-			if parent_a.permutation[p_a_idx] not in child_a_set:
+			if parent_a.permutation[p_a_idx][0] not in child_a_set:
 				child_a_perm.append(parent_a.permutation[p_a_idx])
 				ch_a_idx += 1
 			p_a_idx += 1
 
 		while ch_b_idx < size:
-			if parent_b.permutation[p_b_idx] not in child_b_set:
+			if parent_b.permutation[p_b_idx][0] not in child_b_set:
 				child_b_perm.append(parent_b.permutation[p_b_idx])
 				ch_b_idx += 1
 			p_b_idx += 1
 
-		child_a = Solution(child_a_perm)
-		child_b = Solution(child_b_perm)
-
-		return child_a, child_b
+		return child_a_perm, child_b_perm
        
 class Mutation:
     def mutate(self, solution):
-        size = len(solution.permutation)
+        size = len(solution)
 
         mp1 = random.randrange(size)
         mp2 = random.randrange(size)
         while(mp2 == mp1):
             mp2 = random.randrange(size)
-        solution.permutation[mp1], solution.permutation[mp2] = solution.permutation[mp2], solution.permutation[mp1]
+        solution[mp1], solution[mp2] = solution[mp2], solution[mp1]
         return solution
+
+class MutationZero:
+    def mutate(self, solution):
+		size = len(solution)
+
+		mp1 = random.randrange(size)
+		mp2 = random.randrange(size)
+		while(mp2 == mp1):
+			mp2 = random.randrange(size)
+
+		solution[mp1] = (solution[mp1][0],0)
+		solution[mp2] = (solution[mp2][0],0)
+		return solution
 
 class BinaryTournament:
     def select(self, population):
-        i = random.randrange(len(population))
-        j = random.randrange(len(population))
-        while i == j:
-           j = random.randrange(len(population))
-        
-        a = population[i]
-        b = population[j]
-        if a.fitness < b.fitness:
-            return a
-        else: 
-            return b
+		i = random.randrange(len(population))
+		j = random.randrange(len(population))
+		while i == j:
+		   j = random.randrange(len(population))
+		
+		a = population[i]
+		b = population[j]
+
+		if a.fitnessf < b.fitnessf:
+		    return a
+		else:
+			return b
+
+class Solution:
+	def __init__(self):
+		self.permutation = []
+		self.fitness = 81
+		self.fitness2 = 99999999
+		self.fitnessf = 8100000000
+		self.age = 0
+
+	def genRanSol(self, sudoku, num, freq):
+		global evals
+		sudoku_cl = copy.deepcopy(sudoku)
+		num_cl = copy.deepcopy(num)
+
+		random.shuffle(num_cl)
+
+		self.fitness = 0
+		self.fitness2 = 0
+
+		for i in range(len(num_cl)):
+			possible_numbers = set([1,2,3,4,5,6,7,8,9])
+			possible_numbers = possible_numbers - sudoku_cl.col[num_cl[i]//9] - sudoku_cl.row[num_cl[i]%9] - sudoku_cl.box[calcIdxOfBox(num_cl[i])]
+
+			if len(possible_numbers) == 0:
+				self.permutation.append((num_cl[i], 0))
+				self.fitness += 1
+			else:
+				a = random.choice(list(possible_numbers))
+				self.permutation.append((num_cl[i], a))
+				sudoku_cl.col[num_cl[i]//9].add(a)
+				sudoku_cl.row[num_cl[i]%9].add(a)
+				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
+				self.fitness2 = self.fitness2 + freq[num_cl[i]][a-1]
+				freq[num_cl[i]][a-1] += 1
+
+		self.fitnessf = (self.fitness * 100000000) + self.fitness2
+		evals += 1
+
+	def validate(self, sudoku, perm, freq):
+		global evals
+		sudoku_cl = copy.deepcopy(sudoku)
+		
+		self.fitness = 0
+		self.fitness2 = 0
+
+		for i in range(len(perm)):
+			possible_numbers = set([1,2,3,4,5,6,7,8,9])
+			possible_numbers = possible_numbers - sudoku_cl.col[perm[i][0]//9] - sudoku_cl.row[perm[i][0]%9] - sudoku_cl.box[calcIdxOfBox(perm[i][0])]
+
+			if len(possible_numbers) == 0:
+				self.permutation.append((perm[i][0], 0))
+				self.fitness += 1
+			else:
+				a = 0
+	
+				if perm[i][1] in possible_numbers:
+					a = perm[i][1]
+					self.permutation.append((perm[i][0], a)) 
+				else:
+					a = random.choice(list(possible_numbers))
+					self.permutation.append((perm[i][0], a))
+		
+				sudoku_cl.col[perm[i][0]//9].add(a)
+				sudoku_cl.row[perm[i][0]%9].add(a)
+				sudoku_cl.box[calcIdxOfBox(perm[i][0])].add(a)
+				self.fitness2 = self.fitness2 + freq[perm[i][0]][a-1]
+				freq[perm[i][0]][a-1] += 1
+
+		self.fitnessf = (self.fitness * 100000000) + self.fitness2
+		evals += 1
+
+	def reCalcFit(self, freq):
+		self.fitness2 = 0
+		for i in range(len(self.permutation)):
+			self.fitness2 = self.fitness2 + freq[self.permutation[i][0]][self.permutation[i][1]-1]
 
 def ga(filename):
 	num, num_fix, sudoku = read_data(filename)
 
+	freq = [[0 for col in range(9)] for row in range(81)]
+
 	population = []
 	selection_op = BinaryTournament()
 	crossover_op = CrossoverOrder()
-	mutation_op = Mutation()
+	mutation_op = MutationZero()
 
 	elitism = []
 	aging = []
 
-	pop_size = 200
+	pop_size = 1000
 	for i in range(pop_size):
-		perm = []
-		for j in range(num):
-			perm.append(j)
-		random.shuffle(perm)            
-		new_individual = Solution(perm)
-		evaluate(new_individual)
+		new_individual = Solution()
+		new_individual.genRanSol(sudoku, num, freq)
 		population.append(new_individual)
 
 	for i in range(pop_size):
@@ -245,55 +268,85 @@ def ga(filename):
 	for i in range(5):
 		aging.append( math.sqrt(math.sqrt(0.8- (float(i) * 0.2) )) )
 
-	population = sorted(population, key=attrgetter('fitness'))
+	#print elitism
+	#print aging
+
+	population = sorted(population, key=attrgetter('fitnessf'))
 	current_best = population[0]
 
 	generation = 0
 
-	while evals < budget:
+	while (evals < budget) and (current_best.fitnessf >=100000000):
+
+		key = False
+		for i in range(81):
+			for j in range(9):
+				if freq[i][j] >= 99999:
+					key = True
+					break
+			if freq[i][j] >= 99999:
+				key = True
+				break
+
+		if key:
+			for i in range(81):
+				for j in range(9):
+						freq[i][j] = int(freq[i][j]/100)
+
 		nextgeneration = []
 		
 		#apply elitism and aging
 		for i in range(pop_size):
 			if random.random() < elitism[i]:
+				assert population[i].age < 5
 				if(random.random() < aging[population[i].age]):
+					population[i].reCalcFit(freq)
 					nextgeneration.append(population[i])
 		
 		while len(nextgeneration) < pop_size:
 		    parent_a = selection_op.select(population)
 		    parent_b = selection_op.select(population)
-		    child_a, child_b = crossover_op.crossover(parent_a, parent_b)
+		    child_a_p, child_b_p = crossover_op.crossover(parent_a, parent_b)
 		    if random.random() < 0.5:
-		        child_a = mutation_op.mutate(child_a)
+		        child_a_p = mutation_op.mutate(child_a_p)
 		    if random.random() < 0.5:
-		        child_b = mutation_op.mutate(child_b)
-		    
-		    evaluate(child_a)
-		    evaluate(child_b)
+		        child_b_p = mutation_op.mutate(child_b_p)
 
-		    nextgeneration.append(child_a)
-		    nextgeneration.append(child_b)
+			child_a = Solution()
 
-		    # print child_a
-		    # print child_b
-		population = sorted(nextgeneration, key=attrgetter('fitness'))
+			child_a.validate(sudoku, child_a_p, freq)
+
+			child_b = Solution()
+
+			child_b.validate(sudoku, child_b_p, freq)
+
+			nextgeneration.append(child_a)
+			nextgeneration.append(child_b)
+
+		population = sorted(nextgeneration, key=attrgetter('fitnessf'))
 		best = population[0]
-		# print generation, best.fitness, best.translate(coded_word)
-		if best.fitness < current_best.fitness:
+		print population[0].fitnessf, '...', population[len(population)-1].fitnessf, current_best.fitnessf
+		temp = copy.deepcopy(best.permutation)
+		temp.sort()
+		print temp
+		if best.fitnessf < current_best.fitnessf:
 		    current_best = best
-		    # print current_best_str
-		#print ",".join([str(generation), str(current_best.fitness)])
+		    
 		for i in range(len(population)):
 			population[i].age += 1
 		generation += 1
 
-	return current_best
+	result = current_best.permutation + num_fix
+
+	result.sort()
+
+	return result
 
 if __name__ == '__main__':
 	budget = 500000
 	sol = ga(sys.argv[1])
-	for i in range(len(sol.permutation)):
-		print sol.permutation[i]+1, ',',
-	print ' '
-	print sol.fitness
+	for i in range(81):
+		print sol[i][1], ' ',
+		if i % 9 == 8:
+			print ' '
 
