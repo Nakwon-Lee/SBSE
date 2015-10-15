@@ -72,6 +72,56 @@ def read_data(filename):
 
 	return num, num_fix, sudoku
 
+class CrossoverZeroFirst:
+	def crossover(self, parent_a, parent_b):
+		assert(len(parent_a.permutation) == len(parent_b.permutation))
+		size = len(parent_a.permutation)
+
+		child_a_perm = []
+		child_b_perm = []
+		child_a_set = set()
+		child_b_set = set()
+
+		count_a = 0
+		for i in range(size):
+			if parent_a.permutation[i][1] == 0:
+				for j in range(size):
+					if parent_b.permutation[j][0] == parent_a.permutation[i][0]:
+						child_a_perm.append((parent_b.permutation[j][0], parent_b.permutation[j][1]))
+						child_a_set.add(parent_b.permutation[j][0])
+						count_a += 1
+						break
+
+		count_b = 0
+		for i in range(size):
+			if parent_b.permutation[i][1] == 0:
+				for j in range(size):
+					if parent_a.permutation[j][0] == parent_b.permutation[i][0]:
+						child_b_perm.append((parent_a.permutation[j][0], parent_a.permutation[j][1]))
+						child_b_set.add(parent_a.permutation[j][0])
+						count_b += 1
+						break
+
+		ch_a_idx = count_a
+		p_a_idx = 0
+		ch_b_idx = count_b
+		p_b_idx = 0
+
+		while ch_a_idx < size:
+			if parent_a.permutation[p_a_idx][0] not in child_a_set:
+				child_a_perm.append(parent_a.permutation[p_a_idx])
+				ch_a_idx += 1
+			p_a_idx += 1
+
+		while ch_b_idx < size:
+			if parent_b.permutation[p_b_idx][0] not in child_b_set:
+				child_b_perm.append(parent_b.permutation[p_b_idx])
+				ch_b_idx += 1
+			p_b_idx += 1
+
+		return child_a_perm, child_b_perm
+
+
 class CrossoverOrder:
     def crossover(self, parent_a, parent_b):
 		assert(len(parent_a.permutation) == len(parent_b.permutation))
@@ -176,7 +226,7 @@ class Solution:
 		self.fitnessf = 8100000000
 		self.age = 0
 
-	def genRanSol(self, sudoku, num, freq):
+	def genRanSol(self, sudoku, num, freq, freq_cl):
 		global evals
 		sudoku_cl = copy.deepcopy(sudoku)
 		num_cl = copy.deepcopy(num)
@@ -199,13 +249,14 @@ class Solution:
 				sudoku_cl.col[num_cl[i]//9].add(a)
 				sudoku_cl.row[num_cl[i]%9].add(a)
 				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
+				assert freq[num_cl[i]][a-1] >= 0
 				self.fitness2 = self.fitness2 + freq[num_cl[i]][a-1]
-				freq[num_cl[i]][a-1] += 1
+				freq_cl[num_cl[i]][a-1] += 1
 
 		self.fitnessf = (self.fitness * 100000000) + self.fitness2
 		evals += 1
 
-	def validate(self, sudoku, perm, freq):
+	def validate(self, sudoku, perm, freq, freq_cl):
 		global evals
 		sudoku_cl = copy.deepcopy(sudoku)
 		
@@ -232,35 +283,46 @@ class Solution:
 				sudoku_cl.col[perm[i][0]//9].add(a)
 				sudoku_cl.row[perm[i][0]%9].add(a)
 				sudoku_cl.box[calcIdxOfBox(perm[i][0])].add(a)
+				assert freq[perm[i][0]][a-1] >= 0
 				self.fitness2 = self.fitness2 + freq[perm[i][0]][a-1]
-				freq[perm[i][0]][a-1] += 1
+				freq_cl[perm[i][0]][a-1] += 1
 
 		self.fitnessf = (self.fitness * 100000000) + self.fitness2
 		evals += 1
 
-	def reCalcFit(self, freq):
+	def reCalcFit(self, freq, freq_cl):
 		self.fitness2 = 0
 		for i in range(len(self.permutation)):
+			assert freq[self.permutation[i][0]][self.permutation[i][1]-1] >= 0
 			self.fitness2 = self.fitness2 + freq[self.permutation[i][0]][self.permutation[i][1]-1]
+			if self.permutation[i][1] != 0:
+				freq_cl[self.permutation[i][0]][self.permutation[i][1]-1] += 1
 
-def ga(filename):
+def ga(filename, pop):
+
+	print pop, budget
+
 	num, num_fix, sudoku = read_data(filename)
 
 	freq = [[0 for col in range(9)] for row in range(81)]
 
 	population = []
 	selection_op = BinaryTournament()
-	crossover_op = CrossoverOrder()
-	mutation_op = MutationZero()
+	crossover_op = CrossoverZeroFirst()
+	mutation_op = Mutation()
 
 	elitism = []
 	aging = []
 
-	pop_size = 1000
+	freq_cl = copy.deepcopy(freq)
+
+	pop_size = pop
 	for i in range(pop_size):
 		new_individual = Solution()
-		new_individual.genRanSol(sudoku, num, freq)
+		new_individual.genRanSol(sudoku, num, freq, freq_cl)
 		population.append(new_individual)
+
+	freq = freq_cl
 
 	for i in range(pop_size):
 		elitism.append(0.9 * pow( (float(pop_size-i)/float(pop_size)),5 ))
@@ -291,7 +353,12 @@ def ga(filename):
 		if key:
 			for i in range(81):
 				for j in range(9):
-						freq[i][j] = int(freq[i][j]/100)
+						if freq[i][j] - 50000 >= 0:
+							freq[i][j] -= 50000
+						else:
+							freq[i][j] = 0
+
+		freq_cl = copy.deepcopy(freq)
 
 		nextgeneration = []
 		
@@ -300,25 +367,25 @@ def ga(filename):
 			if random.random() < elitism[i]:
 				assert population[i].age < 5
 				if(random.random() < aging[population[i].age]):
-					population[i].reCalcFit(freq)
+					population[i].reCalcFit(freq, freq_cl)
 					nextgeneration.append(population[i])
 		
 		while len(nextgeneration) < pop_size:
 		    parent_a = selection_op.select(population)
 		    parent_b = selection_op.select(population)
 		    child_a_p, child_b_p = crossover_op.crossover(parent_a, parent_b)
-		    if random.random() < 0.5:
+		    if random.random() < 0.1:
 		        child_a_p = mutation_op.mutate(child_a_p)
-		    if random.random() < 0.5:
+		    if random.random() < 0.1:
 		        child_b_p = mutation_op.mutate(child_b_p)
 
 			child_a = Solution()
 
-			child_a.validate(sudoku, child_a_p, freq)
+			child_a.validate(sudoku, child_a_p, freq, freq_cl)
 
 			child_b = Solution()
 
-			child_b.validate(sudoku, child_b_p, freq)
+			child_b.validate(sudoku, child_b_p, freq, freq_cl)
 
 			nextgeneration.append(child_a)
 			nextgeneration.append(child_b)
@@ -336,6 +403,8 @@ def ga(filename):
 			population[i].age += 1
 		generation += 1
 
+		freq = freq_cl
+
 	result = current_best.permutation + num_fix
 
 	result.sort()
@@ -343,8 +412,15 @@ def ga(filename):
 	return result
 
 if __name__ == '__main__':
-	budget = 500000
-	sol = ga(sys.argv[1])
+	pop_size = 200
+	budget = 1000000
+	for i in range(len(sys.argv)):
+		if sys.argv[i] == '-p': #population size
+			pop_size = int(sys.argv[i+1])
+		elif sys.argv[i] == '-f': #budget limitation
+			budget = int(sys.argv[i+1])
+
+	sol = ga(sys.argv[len(sys.argv)-1], pop_size)
 	for i in range(81):
 		print sol[i][1], ' ',
 		if i % 9 == 8:

@@ -5,7 +5,7 @@ from operator import attrgetter
 
 evals = 0
 budget = 0
-sudoku = None
+dist = None
 
 class Solution:
     def __init__(self, permutation, random=False):
@@ -13,58 +13,12 @@ class Solution:
 		self.fitness = sys.float_info.max
 		self.age = 1
 
-def calcIdxOfBox(pos):
-	
-	quota = pos // 9
-	remainder = pos % 9
-	idx = 0
-
-	if quota < 3:
-		if remainder < 3:
-			idx = 0
-		elif (remainder >= 3) and (remainder < 6):
-			idx = 1
-		else:
-			idx = 2
-	elif (quota >= 3) and (quota < 6):
-		if remainder < 3:
-			idx = 3
-		elif (remainder >= 3) and (remainder < 6):
-			idx = 4
-		else:
-			idx = 5
-	else:
-		if remainder < 3:
-			idx = 6
-		elif (remainder >= 3) and (remainder < 6):
-			idx = 7
-		else:
-			idx = 8
-
-	return idx
-
-class Sudoku:
-	def __init__(self,num)
-		self.col = []
-		self.row = []
-		self.box = []
-	
-		for i in range(num)
-			self.col.append(set())
-			self.row.append(set())
-			self.box.append(set())
-
 def read_data(filename):
-	global sudoku
+	global dist
 	lines = open(filename).readlines()
-	sudoku = Sudoku(9)
-
-	pos = 0
+	coords = []
 	for line in lines:
-		for i in range(len(line)):
-			if line[i].isdigit():
-				sudoku.col[pos//9].add(line[i])
-
+		if line[0].isdigit():
 		    no, x, y = line.strip().split(" ")
 		    coords.append((float(x), float(y)))
 	num = len(coords)
@@ -207,7 +161,10 @@ class BinaryTournament:
         else: 
             return b
 
-def ga(filename):
+def ga(filename, pop):
+
+	print pop, budget
+
 	num, dist = read_data(filename)
 
 	population = []
@@ -218,7 +175,7 @@ def ga(filename):
 	elitism = []
 	aging = []
 
-	pop_size = 200
+	pop_size = pop
 	for i in range(pop_size):
 		perm = []
 		for j in range(num):
@@ -279,8 +236,15 @@ def ga(filename):
 	return current_best
 
 if __name__ == '__main__':
-	budget = 500000
-	sol = ga(sys.argv[1])
+	pop_size = 200
+	budget = 1000000
+	for i in range(len(sys.argv)):
+		if sys.argv[i] == '-p': #population size
+			pop_size = int(sys.argv[i+1])
+		elif sys.argv[i] == '-f': #budget limitation
+			budget = int(sys.argv[i+1])
+
+	sol = ga(sys.argv[len(sys.argv)-1], pop_size)
 	for i in range(len(sol.permutation)):
 		print sol.permutation[i]+1, ',',
 	print ' '

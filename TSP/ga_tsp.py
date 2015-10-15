@@ -161,7 +161,10 @@ class BinaryTournament:
         else: 
             return b
 
-def ga(filename):
+def ga(filename, pop):
+
+	print pop, budget
+
 	num, dist = read_data(filename)
 
 	population = []
@@ -172,7 +175,7 @@ def ga(filename):
 	elitism = []
 	aging = []
 
-	pop_size = 200
+	pop_size = pop
 	for i in range(pop_size):
 		perm = []
 		for j in range(num):
@@ -233,8 +236,15 @@ def ga(filename):
 	return current_best
 
 if __name__ == '__main__':
-	budget = 500000
-	sol = ga(sys.argv[1])
+	pop_size = 200
+	budget = 1000000
+	for i in range(len(sys.argv)):
+		if sys.argv[i] == '-p': #population size
+			pop_size = int(sys.argv[i+1])
+		elif sys.argv[i] == '-f': #budget limitation
+			budget = int(sys.argv[i+1])
+
+	sol = ga(sys.argv[len(sys.argv)-1], pop_size)
 	for i in range(len(sol.permutation)):
 		print sol.permutation[i]+1, ',',
 	print ' '
