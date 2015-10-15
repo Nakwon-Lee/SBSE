@@ -3,30 +3,52 @@ import math
 import random
 from operator import attrgetter
 
+#number of fitness evaluations
 evals = 0
+#limitation of fitness evaluations
 budget = 0
+#variable for storing distance btw coordinates
 dist = None
 
+#gene
+#permutation: sequence of coordinates
+#fitness: total length of coordintates sequence (permutation)
+#age: how old this gene is (initial age is 1)
 class Solution:
     def __init__(self, permutation, random=False):
 		self.permutation = permutation
 		self.fitness = sys.float_info.max
 		self.age = 1
 
+#read data of coordinates from given file
+#param
+#filename: file, storing coordinates's data
+#return
+#num: number of coordinates
 def read_data(filename):
 	global dist
 	lines = open(filename).readlines()
 	coords = []
+
+	#loop for reading and storing coordinates
+	#constraints for coordinates's data
+	#lines start with digit when the line represents coordinate (actually that position is the label of coordinate)
+	#other lines must not start with digit 
+	#the line, which represents coordinate must be structured as [label of coordinate][white space][x-axis value][white space][y-axis value]
 	for line in lines:
 		if line[0].isdigit():
 		    no, x, y = line.strip().split(" ")
 		    coords.append((float(x), float(y)))
+
+	#num: number of coordinates
 	num = len(coords)
 	dist = [[0 for col in range(num)] for row in range(num)]
+
+	#loop for calculating distances btw coordinates
 	for i in range(num - 1):
 		for j in range(1, num):
 		    dist[i][j] = math.sqrt((coords[i][0] - coords[j][0]) ** 2 + (coords[i][1] - coords[j][1]) ** 2)
-	return num, dist
+	return num
 
 def evaluate(sol):
 	global evals
@@ -165,7 +187,7 @@ def ga(filename, pop):
 
 	print pop, budget
 
-	num, dist = read_data(filename)
+	num = read_data(filename)
 
 	population = []
 	selection_op = BinaryTournament()
