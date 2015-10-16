@@ -50,6 +50,9 @@ def read_data(filename):
 		    dist[i][j] = math.sqrt((coords[i][0] - coords[j][0]) ** 2 + (coords[i][1] - coords[j][1]) ** 2)
 	return num
 
+#evaluate the fitness of given gene
+#param
+#sol: individual to be calculated its fitness
 def evaluate(sol):
 	global evals
 	evals += 1
@@ -57,6 +60,9 @@ def evaluate(sol):
 	for i in range(len(sol.permutation) - 1):
 		sol.fitness += dist[sol.permutation[i]][sol.permutation[i+1]]
 
+#Crossover function must have name as "crossover"
+
+#Crossover class for pmx algorithm
 class Crossover:
     def crossover(self, parent_a, parent_b):
         assert(len(parent_a.permutation) == len(parent_b.permutation))
@@ -98,11 +104,17 @@ class Crossover:
                 child.permutation[i] = mapped
         return child
 
+#class for crossover algorithm
+#algorithm overview
+#get permutations btw two change points from one parent
+#and then other points are filled with coordinates in the other parent
+#by retaining their order in the parent
 class CrossoverOrder:
     def crossover(self, parent_a, parent_b):
 		assert(len(parent_a.permutation) == len(parent_b.permutation))
 		size = len(parent_a.permutation)
 
+		#two different change points are selected
 		cp1 = random.randrange(size)
 		cp2 = random.randrange(size)
 		while(cp2 == cp1):
@@ -116,6 +128,8 @@ class CrossoverOrder:
 		child_a_set = set()
 		child_b_set = set()
 
+		#get permutations btw two change points from one parent
+		#store them (their coordinate labels) in set for duplication check
 		for i in range(cp1, cp2 + 1):
 			child_a_perm.append(parent_b.permutation[i])
 			child_a_set.add(parent_b.permutation[i])
@@ -127,6 +141,10 @@ class CrossoverOrder:
 		ch_b_idx = 0
 		p_b_idx = 0
 
+		#fill vacant positions from the other parent
+		#by retaining their order
+		#how? check coordinates in "the other parent" in order.
+		#if the current coordinate is not in set, fill the current coordinate to first vacant position
 		while ch_a_idx < cp1:
 			if parent_a.permutation[p_a_idx] not in child_a_set:
 				child_a_perm.insert(ch_a_idx, parent_a.permutation[p_a_idx])
@@ -153,11 +171,14 @@ class CrossoverOrder:
 				ch_b_idx += 1
 			p_b_idx += 1
 
+		#make two genes with each offspring
 		child_a = Solution(child_a_perm)
 		child_b = Solution(child_b_perm)
 
 		return child_a, child_b
-       
+
+#mutation function must have name as "mutate"
+#swap the randomly selected two coordinates
 class Mutation:
     def mutate(self, solution):
         size = len(solution.permutation)

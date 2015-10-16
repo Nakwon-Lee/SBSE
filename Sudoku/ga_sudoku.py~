@@ -121,7 +121,6 @@ class CrossoverZeroFirst:
 
 		return child_a_perm, child_b_perm
 
-
 class CrossoverOrder:
     def crossover(self, parent_a, parent_b):
 		assert(len(parent_a.permutation) == len(parent_b.permutation))
@@ -189,6 +188,53 @@ class Mutation:
             mp2 = random.randrange(size)
         solution[mp1], solution[mp2] = solution[mp2], solution[mp1]
         return solution
+
+class MutationSwapZero:
+	def mutate(self, solution):
+		size = len(solution)
+
+		mp1 = random.randrange(size)
+		mp2 = random.randrange(size)
+		while(mp2 == mp1):
+		    mp2 = random.randrange(size)
+		solution[mp1], solution[mp2] = solution[mp2], solution[mp1]
+		solution[mp1] = (solution[mp1][0],0)
+		solution[mp2] = (solution[mp2][0],0)
+		return solution
+
+class MutationSwapZeroToFirst:
+	def mutate(self, solution):
+		size = len(solution)
+
+		val_list = [1,2,3,4,5,6,7,8,9]
+
+		key = False
+
+		for i in range(size):
+			mp1 = random.randrange(size)
+			if solution[mp1][1] == 0:
+				solution[mp1], solution[0] = solution[0], solution[mp1]
+				solution[0] = (solution[0][0], random.choice(val_list))
+				key = True
+				break
+
+		if key:
+			for i in range(size):
+				mp1 = random.randrange(size)
+				if solution[mp1][1] == 0 and mp1 != 0:
+					solution[mp1], solution[1] = solution[1], solution[mp1]
+					solution[1] = (solution[1][0], random.choice(val_list))
+					break
+		else:
+			for i in range(size):
+				mp1 = random.randrange(size)
+				if solution[mp1][1] == 0:
+					solution[mp1], solution[0] = solution[0], solution[mp1]
+					solution[0] = (solution[0][0], random.choice(val_list))
+					key = True
+					break
+
+		return solution
 
 class MutationZero:
     def mutate(self, solution):
@@ -291,12 +337,15 @@ class Solution:
 		evals += 1
 
 	def reCalcFit(self, freq, freq_cl):
+		global evals
 		self.fitness2 = 0
+		evals += 1
 		for i in range(len(self.permutation)):
 			assert freq[self.permutation[i][0]][self.permutation[i][1]-1] >= 0
 			self.fitness2 = self.fitness2 + freq[self.permutation[i][0]][self.permutation[i][1]-1]
 			if self.permutation[i][1] != 0:
 				freq_cl[self.permutation[i][0]][self.permutation[i][1]-1] += 1
+		self.fitnessf = (self.fitness * 100000000) + self.fitness2
 
 def ga(filename, pop):
 
@@ -309,7 +358,11 @@ def ga(filename, pop):
 	population = []
 	selection_op = BinaryTournament()
 	crossover_op = CrossoverZeroFirst()
+	#crossover_op = CrossoverOrder()
 	mutation_op = Mutation()
+	#mutation_op = MutationZero()
+	#mutation_op = MutationSwapZeroToFirst()
+	#mutation_op = MutationSwapZero()
 
 	elitism = []
 	aging = []
@@ -325,10 +378,10 @@ def ga(filename, pop):
 	freq = freq_cl
 
 	for i in range(pop_size):
-		elitism.append(0.9 * pow( (float(pop_size-i)/float(pop_size)),5 ))
+		elitism.append(0.7 * pow( (float(pop_size-i)/float(pop_size)),5 ))
 
 	for i in range(5):
-		aging.append( math.sqrt(math.sqrt(0.8- (float(i) * 0.2) )) )
+		aging.append( math.sqrt(math.sqrt(0.8 - (float(i) * 0.2) )) )
 
 	#print elitism
 	#print aging
@@ -353,6 +406,7 @@ def ga(filename, pop):
 		if key:
 			for i in range(81):
 				for j in range(9):
+						#freq[i][j] = int(freq[i][j] / 2)
 						if freq[i][j] - 50000 >= 0:
 							freq[i][j] -= 50000
 						else:
@@ -374,9 +428,9 @@ def ga(filename, pop):
 		    parent_a = selection_op.select(population)
 		    parent_b = selection_op.select(population)
 		    child_a_p, child_b_p = crossover_op.crossover(parent_a, parent_b)
-		    if random.random() < 0.1:
+		    if random.random() < 0.4:
 		        child_a_p = mutation_op.mutate(child_a_p)
-		    if random.random() < 0.1:
+		    if random.random() < 0.4:
 		        child_b_p = mutation_op.mutate(child_b_p)
 
 			child_a = Solution()
@@ -392,9 +446,8 @@ def ga(filename, pop):
 
 		population = sorted(nextgeneration, key=attrgetter('fitnessf'))
 		best = population[0]
-		print population[0].fitnessf, '...', population[len(population)-1].fitnessf, current_best.fitnessf
 		temp = copy.deepcopy(best.permutation)
-		temp.sort()
+		#temp.sort()
 		print temp
 		if best.fitnessf < current_best.fitnessf:
 		    current_best = best
@@ -402,6 +455,7 @@ def ga(filename, pop):
 		for i in range(len(population)):
 			population[i].age += 1
 		generation += 1
+		print generation, population[0].fitnessf, '...', population[len(population)-1].fitnessf, current_best.fitnessf
 
 		freq = freq_cl
 
