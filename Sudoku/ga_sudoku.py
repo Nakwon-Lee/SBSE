@@ -297,7 +297,7 @@ class Solution:
 				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
 				assert freq[num_cl[i]][a-1] >= 0
 				self.fitness2 = self.fitness2 + freq[num_cl[i]][a-1]
-				freq_cl[num_cl[i]][a-1] += 1
+				#freq_cl[num_cl[i]][a-1] += 1
 
 		self.fitnessf = (self.fitness * 100000000) + self.fitness2
 		evals += 1
@@ -331,7 +331,7 @@ class Solution:
 				sudoku_cl.box[calcIdxOfBox(perm[i][0])].add(a)
 				assert freq[perm[i][0]][a-1] >= 0
 				self.fitness2 = self.fitness2 + freq[perm[i][0]][a-1]
-				freq_cl[perm[i][0]][a-1] += 1
+				#freq_cl[perm[i][0]][a-1] += 1
 
 		self.fitnessf = (self.fitness * 100000000) + self.fitness2
 		evals += 1
@@ -368,6 +368,8 @@ def ga(filename, pop):
 	aging = []
 
 	freq_cl = copy.deepcopy(freq)
+
+	#random.shuffle(num)
 
 	pop_size = pop
 	for i in range(pop_size):
@@ -447,7 +449,7 @@ def ga(filename, pop):
 		population = sorted(nextgeneration, key=attrgetter('fitnessf'))
 		best = population[0]
 		temp = copy.deepcopy(best.permutation)
-		#temp.sort()
+		temp.sort()
 		print temp
 		if best.fitnessf < current_best.fitnessf:
 		    current_best = best
