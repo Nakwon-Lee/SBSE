@@ -264,25 +264,72 @@ class BinaryTournament:
 		else:
 			return b
 
+class BinaryTournamentComb:
+    def select(self, population):
+		i = random.randrange(len(population))
+		j = random.randrange(len(population))
+		while i == j:
+		   j = random.randrange(len(population))
+		
+		a = population[i]
+		b = population[j]
+
+		if a.fitness < b.fitness:
+		    return a
+		elif a.fitness > b.fitness:
+			return b
+		else:
+			if a.fitness3 < b.fitness3:
+				return a
+			elif a.fitness3 > b.fitness3:
+				return b
+			else:
+				if a.fitness2 < b.fitness2:
+					return a
+				else:
+					return b
+
 class Solution:
 	def __init__(self):
 		self.permutation = []
 		self.fitness = 81
-		self.fitness2 = 99999999
-		self.fitnessf = 8100000000
+		self.fitness2 = 99999999.0
+		self.fitness3 = 99999999.0
 		self.age = 0
 
-	def genRanSol(self, sudoku, num, freq, freq_cl):
+	def genRanSol(self, sudoku, num, freq, freq_cl, combfreq, combfreq_cl):
 		global evals
 		sudoku_cl = copy.deepcopy(sudoku)
 		num_cl = copy.deepcopy(num)
 
-		random.shuffle(num_cl)
+		#random.shuffle(num_cl)
 
 		self.fitness = 0
 		self.fitness2 = 0
+		self.fitness3 = 0
 
-		for i in range(len(num_cl)):
+		ft = [0 for i in range(3)]
+
+		for i in range(3):
+			possible_numbers = set([1,2,3,4,5,6,7,8,9])
+			possible_numbers = possible_numbers - sudoku_cl.col[num_cl[i]//9] - sudoku_cl.row[num_cl[i]%9] - sudoku_cl.box[calcIdxOfBox(num_cl[i])]
+
+			if len(possible_numbers) == 0:
+				assert i >= 3
+				self.permutation.append((num_cl[i], 0))
+				self.fitness += 1
+			else:
+				a = random.choice(list(possible_numbers))
+				if i < 3:
+					ft[i] = a
+				self.permutation.append((num_cl[i], a))
+				sudoku_cl.col[num_cl[i]//9].add(a)
+				sudoku_cl.row[num_cl[i]%9].add(a)
+				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
+				if i == 2:
+					self.fitness3 = combfreq[ft[0]-1][ft[1]-1][ft[2]-1]
+
+		for i in range(3, len(num_cl)):
 			possible_numbers = set([1,2,3,4,5,6,7,8,9])
 			possible_numbers = possible_numbers - sudoku_cl.col[num_cl[i]//9] - sudoku_cl.row[num_cl[i]%9] - sudoku_cl.box[calcIdxOfBox(num_cl[i])]
 
@@ -297,19 +344,52 @@ class Solution:
 				sudoku_cl.box[calcIdxOfBox(num_cl[i])].add(a)
 				assert freq[num_cl[i]][a-1] >= 0
 				self.fitness2 = self.fitness2 + freq[num_cl[i]][a-1]
-				#freq_cl[num_cl[i]][a-1] += 1
 
-		self.fitnessf = (self.fitness * 100000000) + self.fitness2
+		#calculate frequencies
+		combfreq_cl[ft[0]-1][ft[1]-1][ft[2]-1] += ((81.0-float(self.fitness))/81.0)
+
+		for i in range(3, len(num_cl)):
+			if self.permutation[i][1] != 0:		
+				freq_cl[num_cl[i]][self.permutation[i][1]-1] += ((81.0-float(self.fitness))/81.0)
+
 		evals += 1
 
-	def validate(self, sudoku, perm, freq, freq_cl):
+	def validate(self, sudoku, perm, freq, freq_cl, combfreq, combfreq_cl):
 		global evals
 		sudoku_cl = copy.deepcopy(sudoku)
 		
 		self.fitness = 0
 		self.fitness2 = 0
+		self.fitness3 = 0
 
-		for i in range(len(perm)):
+		ft = [0 for i in range(3)]
+
+		for i in range(3):
+			possible_numbers = set([1,2,3,4,5,6,7,8,9])
+			possible_numbers = possible_numbers - sudoku_cl.col[perm[i][0]//9] - sudoku_cl.row[perm[i][0]%9] - sudoku_cl.box[calcIdxOfBox(perm[i][0])]
+
+			if len(possible_numbers) == 0:
+				assert i >= 3
+				self.permutation.append((perm[i][0], 0))
+				self.fitness += 1
+			else:
+				a = 0
+				if perm[i][1] in possible_numbers:
+					a = perm[i][1]
+					self.permutation.append((perm[i][0], a)) 
+				else:
+					a = random.choice(list(possible_numbers))
+					self.permutation.append((perm[i][0], a))
+				if i < 3:
+					ft[i] = a
+				sudoku_cl.col[perm[i][0]//9].add(a)
+				sudoku_cl.row[perm[i][0]%9].add(a)
+				sudoku_cl.box[calcIdxOfBox(perm[i][0])].add(a)
+				if i == 2:
+					self.fitness3 = combfreq[ft[0]-1][ft[1]-1][ft[2]-1]
+					
+
+		for i in range(3, len(perm)):
 			possible_numbers = set([1,2,3,4,5,6,7,8,9])
 			possible_numbers = possible_numbers - sudoku_cl.col[perm[i][0]//9] - sudoku_cl.row[perm[i][0]%9] - sudoku_cl.box[calcIdxOfBox(perm[i][0])]
 
@@ -318,34 +398,45 @@ class Solution:
 				self.fitness += 1
 			else:
 				a = 0
-	
 				if perm[i][1] in possible_numbers:
 					a = perm[i][1]
 					self.permutation.append((perm[i][0], a)) 
 				else:
 					a = random.choice(list(possible_numbers))
 					self.permutation.append((perm[i][0], a))
-		
 				sudoku_cl.col[perm[i][0]//9].add(a)
 				sudoku_cl.row[perm[i][0]%9].add(a)
 				sudoku_cl.box[calcIdxOfBox(perm[i][0])].add(a)
 				assert freq[perm[i][0]][a-1] >= 0
 				self.fitness2 = self.fitness2 + freq[perm[i][0]][a-1]
-				#freq_cl[perm[i][0]][a-1] += 1
 
-		self.fitnessf = (self.fitness * 100000000) + self.fitness2
+		#calculate frequencies
+		combfreq_cl[ft[0]-1][ft[1]-1][ft[2]-1] += ((81.0-float(self.fitness))/81.0)
+		
+		for i in range(3, len(perm)):
+			if self.permutation[i][1] != 0:		
+				freq_cl[perm[i][0]][self.permutation[i][1]-1] += ((81.0-float(self.fitness))/81.0)
+
 		evals += 1
 
-	def reCalcFit(self, freq, freq_cl):
+	def reCalcFit(self, freq, freq_cl, combfreq, combfreq_cl):
 		global evals
 		self.fitness2 = 0
+		self.fitness3 = 0
 		evals += 1
+
+		ft = [0 for i in range(3)]		
+
 		for i in range(len(self.permutation)):
 			assert freq[self.permutation[i][0]][self.permutation[i][1]-1] >= 0
 			self.fitness2 = self.fitness2 + freq[self.permutation[i][0]][self.permutation[i][1]-1]
 			if self.permutation[i][1] != 0:
-				freq_cl[self.permutation[i][0]][self.permutation[i][1]-1] += 1
-		self.fitnessf = (self.fitness * 100000000) + self.fitness2
+				if i < 3:
+					ft[i] = self.permutation[i][1]
+				if i == 2:
+					self.fitness3 = combfreq[ft[0]-1][ft[1]-1][ft[2]-1]
+					combfreq_cl[ft[0]-1][ft[1]-1][ft[2]-1] += ((81.0-float(self.fitness))/81.0)
+				freq_cl[self.permutation[i][0]][self.permutation[i][1]-1] += ((81.0-float(self.fitness))/81.0)
 
 def ga(filename, pop):
 
@@ -353,14 +444,21 @@ def ga(filename, pop):
 
 	num, num_fix, sudoku = read_data(filename)
 
+	combfreq = {}
+	for i in range(9):
+		combfreq[0] = {}
+		for i in range(9):
+			combfreq[0][i] = [0 for col in range(9)]
+
 	freq = [[0 for col in range(9)] for row in range(81)]
 
 	population = []
-	selection_op = BinaryTournament()
-	crossover_op = CrossoverZeroFirst()
-	#crossover_op = CrossoverOrder()
-	mutation_op = Mutation()
-	#mutation_op = MutationZero()
+	#selection_op = BinaryTournament()
+	selection_op = BinaryTournamentComb()
+	#crossover_op = CrossoverZeroFirst()
+	crossover_op = CrossoverOrder()
+	#mutation_op = Mutation()
+	mutation_op = MutationZero()
 	#mutation_op = MutationSwapZeroToFirst()
 	#mutation_op = MutationSwapZero()
 
@@ -368,16 +466,18 @@ def ga(filename, pop):
 	aging = []
 
 	freq_cl = copy.deepcopy(freq)
+	combfreq_cl = copy.deepcopy(combfreq)
 
-	#random.shuffle(num)
+	random.shuffle(num)
 
 	pop_size = pop
 	for i in range(pop_size):
 		new_individual = Solution()
-		new_individual.genRanSol(sudoku, num, freq, freq_cl)
+		new_individual.genRanSol(sudoku, num, freq, freq_cl, combfreq, combfreq_cl)
 		population.append(new_individual)
 
 	freq = freq_cl
+	combfreq = combfreq_cl
 
 	for i in range(pop_size):
 		elitism.append(0.7 * pow( (float(pop_size-i)/float(pop_size)),5 ))
@@ -388,12 +488,12 @@ def ga(filename, pop):
 	#print elitism
 	#print aging
 
-	population = sorted(population, key=attrgetter('fitnessf'))
+	population = sorted(population, key=attrgetter('fitness', 'fitness3', 'fitness2'))
 	current_best = population[0]
 
 	generation = 0
 
-	while (evals < budget) and (current_best.fitnessf >=100000000):
+	while (evals < budget) and (current_best.fitness != 0):
 
 		key = False
 		for i in range(81):
@@ -415,6 +515,7 @@ def ga(filename, pop):
 							freq[i][j] = 0
 
 		freq_cl = copy.deepcopy(freq)
+		combfreq_cl = copy.deepcopy(combfreq)
 
 		nextgeneration = []
 		
@@ -437,16 +538,16 @@ def ga(filename, pop):
 
 			child_a = Solution()
 
-			child_a.validate(sudoku, child_a_p, freq, freq_cl)
+			child_a.validate(sudoku, child_a_p, freq, freq_cl, combfreq, combfreq_cl)
 
 			child_b = Solution()
 
-			child_b.validate(sudoku, child_b_p, freq, freq_cl)
+			child_b.validate(sudoku, child_b_p, freq, freq_cl, combfreq, combfreq_cl)
 
 			nextgeneration.append(child_a)
 			nextgeneration.append(child_b)
 
-		population = sorted(nextgeneration, key=attrgetter('fitnessf'))
+		population = sorted(nextgeneration, key=attrgetter('fitness', 'fitness3', 'fitness2'))
 		best = population[0]
 		temp = copy.deepcopy(best.permutation)
 		temp.sort()
@@ -457,9 +558,10 @@ def ga(filename, pop):
 		for i in range(len(population)):
 			population[i].age += 1
 		generation += 1
-		print generation, population[0].fitnessf, '...', population[len(population)-1].fitnessf, current_best.fitnessf
+		print generation, population[0].fitness, ' ', population[0].fitness3, ' ', population[0].fitness2, '...', population[len(population)-1].fitnessf, current_best.fitnessf
 
 		freq = freq_cl
+		combfreq = combfreq_cl
 
 	result = current_best.permutation + num_fix
 
