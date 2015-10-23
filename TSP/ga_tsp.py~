@@ -190,6 +190,8 @@ class Mutation:
         solution.permutation[mp1], solution.permutation[mp2] = solution.permutation[mp2], solution.permutation[mp1]
         return solution
 
+#selection function must have name as "select"
+#select two solution in population and return the more fitted one
 class BinaryTournament:
     def select(self, population):
         i = random.randrange(len(population))
@@ -204,13 +206,22 @@ class BinaryTournament:
         else: 
             return b
 
+#main genetic algorithm function
+#param
+#filename: the tsp file which has information of coordinates
+#pop: size of population
+#return
+#current_best: the best solution for all generations
 def ga(filename, pop):
 
 	print pop, budget
 
+	#read given tsp file and return number of coordinates
 	num = read_data(filename)
 
 	population = []
+
+	#assign genetic operations
 	selection_op = BinaryTournament()
 	crossover_op = CrossoverOrder()
 	mutation_op = Mutation()
@@ -218,16 +229,19 @@ def ga(filename, pop):
 	elitism = []
 	aging = []
 
+	#establish initial population (randomly generates solutions)
 	pop_size = pop
 	for i in range(pop_size):
 		perm = []
 		for j in range(num):
 			perm.append(j)
-		random.shuffle(perm)             
+		random.shuffle(perm)          
 		new_individual = Solution(perm)
 		evaluate(new_individual)
 		population.append(new_individual)
 
+	#set the probability of survival for soultions
+	#more fitted solution might be alive
 	for i in range(pop_size):
 		elitism.append(0.9 * pow( (float(pop_size-i)/float(pop_size)),5 ))
 

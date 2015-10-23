@@ -189,6 +189,23 @@ class Mutation:
         solution[mp1], solution[mp2] = solution[mp2], solution[mp1]
         return solution
 
+class MutationSwapValueFixOrder:
+	def mutate(self, solution):
+		size = len(solution)
+
+		mp1 = random.randrange(size)
+		mp2 = random.randrange(size)
+		while(mp2 == mp1):
+		    mp2 = random.randrange(size)
+
+		sol1 = solution[mp1][1] 
+		sol2 = solution[mp2][1]
+
+		solution[mp1] = (solution[mp1][0], sol2)
+		solution[mp2] = (solution[mp2][0], sol1)
+	
+		return solution
+
 class MutationSwapZero:
 	def mutate(self, solution):
 		size = len(solution)
@@ -446,9 +463,9 @@ def ga(filename, pop):
 
 	combfreq = {}
 	for i in range(9):
-		combfreq[0] = {}
-		for i in range(9):
-			combfreq[0][i] = [0 for col in range(9)]
+		combfreq[i] = {}
+		for j in range(9):
+			combfreq[i][j] = [0 for col in range(9)]
 
 	freq = [[0 for col in range(9)] for row in range(81)]
 
@@ -458,7 +475,8 @@ def ga(filename, pop):
 	#crossover_op = CrossoverZeroFirst()
 	crossover_op = CrossoverOrder()
 	#mutation_op = Mutation()
-	mutation_op = MutationZero()
+	#mutation_op = MutationZero()
+	mutation_op = MutationSwapValueFixOrder()
 	#mutation_op = MutationSwapZeroToFirst()
 	#mutation_op = MutationSwapZero()
 
@@ -501,8 +519,7 @@ def ga(filename, pop):
 				if freq[i][j] >= 99999:
 					key = True
 					break
-			if freq[i][j] >= 99999:
-				key = True
+			if key == True:
 				break
 
 		if key:
@@ -514,6 +531,28 @@ def ga(filename, pop):
 						else:
 							freq[i][j] = 0
 
+		key = False
+		for i in range(9):
+			for j in range(9):
+				for k in range(9):
+					if combfreq[i][j][k] >= 99999:
+						key = True
+						break
+				if key == True:
+					break
+			if key == True:
+				break
+
+		if key:
+			for i in range(9):
+				for j in range(9):
+					for k in range(9):
+						if combfreq[i][j][k]- 50000 >= 0:
+							combfreq[i][j][k] -= 50000
+						else:
+							combfreq[i][j][k] = 0
+			
+
 		freq_cl = copy.deepcopy(freq)
 		combfreq_cl = copy.deepcopy(combfreq)
 
@@ -524,7 +563,7 @@ def ga(filename, pop):
 			if random.random() < elitism[i]:
 				assert population[i].age < 5
 				if(random.random() < aging[population[i].age]):
-					population[i].reCalcFit(freq, freq_cl)
+					population[i].reCalcFit(freq, freq_cl, combfreq, combfreq_cl)
 					nextgeneration.append(population[i])
 		
 		while len(nextgeneration) < pop_size:
@@ -550,15 +589,19 @@ def ga(filename, pop):
 		population = sorted(nextgeneration, key=attrgetter('fitness', 'fitness3', 'fitness2'))
 		best = population[0]
 		temp = copy.deepcopy(best.permutation)
-		temp.sort()
+		#temp.sort()
 		print temp
-		if best.fitnessf < current_best.fitnessf:
+		if best.fitness < current_best.fitness:
 		    current_best = best
-		    
+
+		lastbest = 0
 		for i in range(len(population)):
 			population[i].age += 1
+			#check last best fitness			
+			if best.fitness != population[i].fitness and lastbest == 0:
+				lastbest = i
 		generation += 1
-		print generation, population[0].fitness, ' ', population[0].fitness3, ' ', population[0].fitness2, '...', population[len(population)-1].fitnessf, current_best.fitnessf
+		print generation, ' lastbest:', lastbest, ' ', population[0].fitness, ' ', population[0].fitness3, ' ', population[0].fitness2, '...', population[len(population)-1].fitness, current_best.fitness
 
 		freq = freq_cl
 		combfreq = combfreq_cl
