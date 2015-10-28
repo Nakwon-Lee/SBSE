@@ -241,10 +241,10 @@ def ga(filename, pop):
 		population.append(new_individual)
 
 	#set the probability of survival for soultions
-	#more fitted solution might be alive
+	#more fitted solution have higher probability of survival
 	for i in range(pop_size):
 		elitism.append(0.9 * pow( (float(pop_size-i)/float(pop_size)),5 ))
-
+	#younger solution have higher probability of survival (more than 4 generations old must die)
 	for i in range(5):
 		aging.append( math.sqrt(math.sqrt(0.8- (float(i) * 0.2) )) )
 
@@ -257,39 +257,53 @@ def ga(filename, pop):
 		nextgeneration = []
 		
 		#apply elitism and aging
+		#if the solution sufficiently fitted and young, it alive and is added to next generation
 		for i in range(pop_size):
 			if random.random() < elitism[i]:
 				if(random.random() < aging[population[i].age]):
 					nextgeneration.append(population[i])
 		
+		#remaing populations are filled with offsprings
 		while len(nextgeneration) < pop_size:
+			#select two solutions
 		    parent_a = selection_op.select(population)
 		    parent_b = selection_op.select(population)
+			#crossover selected two solutions
 		    child_a, child_b = crossover_op.crossover(parent_a, parent_b)
+			#mutate each two offspring with mutation probability
 		    if random.random() < 0.5:
 		        child_a = mutation_op.mutate(child_a)
 		    if random.random() < 0.5:
 		        child_b = mutation_op.mutate(child_b)
 		    
+			#evaluate generated offsprings
 		    evaluate(child_a)
 		    evaluate(child_b)
 
+			#add generated offsprings to the next generation
 		    nextgeneration.append(child_a)
 		    nextgeneration.append(child_b)
 
 		    # print child_a
 		    # print child_b
+		
+		#making next generation is finished
+
 		population = sorted(nextgeneration, key=attrgetter('fitness'))
 		best = population[0]
 		# print generation, best.fitness, best.translate(coded_word)
+		#if best solution in next generation is more fitted than the prior best solution, preserve it and throw out the prior best solution
 		if best.fitness < current_best.fitness:
 		    current_best = best
 		    # print current_best_str
 		#print ",".join([str(generation), str(current_best.fitness)])
+
+		#increase age of all solutions in population
 		for i in range(len(population)):
 			population[i].age += 1
 		generation += 1
 
+	#return best solution ever
 	return current_best
 
 if __name__ == '__main__':
@@ -301,7 +315,9 @@ if __name__ == '__main__':
 		elif sys.argv[i] == '-f': #budget limitation
 			budget = int(sys.argv[i+1])
 
+	#using given tsp file and population size, calculate the best solution of given tsp
 	sol = ga(sys.argv[len(sys.argv)-1], pop_size)
+
 	for i in range(len(sol.permutation)):
 		print sol.permutation[i]+1, ',',
 	print ' '
